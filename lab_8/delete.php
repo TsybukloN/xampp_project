@@ -11,7 +11,7 @@
         } else {
             echo "Error: " . $query . "<br>" . mysqli_error($connection);
         }
-        header("Location: index.php");
+        header("Location: dashboard.php");
     }
     mysqli_close($connection);
 ?>
