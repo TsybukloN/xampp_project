@@ -47,7 +47,6 @@ function generate_edit_form($table, $id) {
 
             echo "<div class='mb-3'>";
             echo "<label for='$field' class='form-label'>" . ucfirst($field) . ":</label>";
-
             echo "<input type='$input_type' id='$field' name='$field' value='" . htmlspecialchars($record[$field]) . "' class='form-control' required><br><br>";
 
             echo "<label for='position_$field' class='form-label'>Change position of $field:</label>";
@@ -95,8 +94,7 @@ if (isset($_POST['edit'])) {
 
             if ($new_position > 0 && $new_position <= count($columns)) {
                 $previous_column = $columns[$new_position - 1];
-                $type = null;
-                
+
                 $query_type = "SHOW COLUMNS FROM $table WHERE Field = '$column'";
                 $result_type = mysqli_query($connection, $query_type);
                 $column_info = mysqli_fetch_assoc($result_type);
