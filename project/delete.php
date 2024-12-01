@@ -8,6 +8,11 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+if ($_SESSION['role'] != 'admin') {
+    header('Location: dashboard.php');
+    exit;
+}
+
 $table = $_GET['table'] ?? '';
 $id = $_GET['id'] ?? '';
 

@@ -8,6 +8,11 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+if ($_SESSION['role'] != 'admin') {
+    header('Location: dashboard.php');
+    exit;
+}
+
 $table = $_GET['table'] ?? '';
 
 function generate_dynamic_form($table) {
@@ -17,6 +22,8 @@ function generate_dynamic_form($table) {
     $result = mysqli_query($connection, $query);
 
     if ($result) {
+        echo "<form method='POST' action=''>";
+
         while ($column = mysqli_fetch_assoc($result)) {
             $field = $column['Field'];
             $type = $column['Type'];
@@ -29,11 +36,9 @@ function generate_dynamic_form($table) {
 
             if (strpos($type, 'int') !== false || strpos($type, 'float') !== false || strpos($type, 'decimal') !== false) {
                 $input_type = 'number';
-            }
-            elseif (strpos($type, 'date') !== false || strpos($type, 'time') !== false || strpos($type, 'datetime') !== false) {
+            } elseif (strpos($type, 'date') !== false || strpos($type, 'time') !== false || strpos($type, 'datetime') !== false) {
                 $input_type = 'date';
-            }
-            elseif ($field === 'password') {
+            } elseif ($field === 'password') {
                 $input_type = 'password';
             }
 
@@ -48,7 +53,8 @@ function generate_dynamic_form($table) {
             }
         }
 
-        echo "<input type='submit' name='add' value='Add Record'></form>";
+        echo "<input type='submit' name='add' value='Add Record'>";
+        echo "</form>";
     } else {
         echo "Error: " . mysqli_error($connection);
     }

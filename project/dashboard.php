@@ -10,6 +10,15 @@ if (!isset($_SESSION['user_id'])) {
 
 $tables = ['Exchanges', 'Cryptocurrencies', 'Prices', 'Users', 'Portfolios', 'Transactions'];
 
+// Hide Users table from users
+if ($_SESSION['role'] === 'user') {
+    $tables = array_filter($tables, function ($table) {
+        return $table !== 'Users';
+    });
+
+    $tables = array_values($tables);
+}
+
 $selected_table = isset($_GET['table']) ? $_GET['table'] : $tables[0];
 $filter = isset($_GET['filter']) ? $_GET['filter'] : '';
 $order = isset($_GET['order']) ? $_GET['order'] : 'id ASC';
