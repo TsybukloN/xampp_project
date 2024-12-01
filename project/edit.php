@@ -1,15 +1,9 @@
 <?php
 session_start();
-global $connection;
 include('db.php');
 
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
     header('Location: index.php');
-    exit;
-}
-
-if ($_SESSION['role'] != 'admin') {
-    header('Location: dashboard.php');
     exit;
 }
 
@@ -31,7 +25,7 @@ function generate_edit_form($table, $id) {
         $record_result = mysqli_query($connection, $query);
         $record = mysqli_fetch_assoc($record_result);
 
-        echo "<form method='POST' action='edit.php?table=$table&id=$id' class='mt-4'>";
+        echo "<form method='POST' action='edit.php?table=$table&id=$id' class='container mt-4'>";
 
         while ($column = mysqli_fetch_assoc($result)) {
             $field = $column['Field'];
@@ -45,24 +39,19 @@ function generate_edit_form($table, $id) {
 
             if (strpos($type, 'int') !== false || strpos($type, 'float') !== false || strpos($type, 'decimal') !== false) {
                 $input_type = 'number';
-            }
-            elseif (strpos($type, 'date') !== false || strpos($type, 'time') !== false || strpos($type, 'datetime') !== false) {
+            } elseif (strpos($type, 'date') !== false || strpos($type, 'time') !== false || strpos($type, 'datetime') !== false) {
                 $input_type = 'date';
-            }
-            elseif ($field === 'password') {
+            } elseif ($field === 'password') {
                 $input_type = 'password';
             }
 
-            echo "<div class='form-group'>";
-            echo "<label for='$field'>" . ucfirst($field) . ":</label>";
+            echo "<div class='mb-3'>";
+            echo "<label for='$field' class='form-label'>" . ucfirst($field) . ":</label>";
 
-            if ($input_type == 'number') {
-                echo "<input type='number' id='$field' name='$field' class='form-control' value='" . htmlspecialchars($record[$field]) . "' required><br><br>";
-            } elseif ($input_type == 'date') {
-                echo "<input type='date' id='$field' name='$field' class='form-control' value='" . htmlspecialchars($record[$field]) . "' required><br><br>";
-            } else {
-                echo "<input type='$input_type' id='$field' name='$field' class='form-control' value='" . htmlspecialchars($record[$field]) . "' required><br><br>";
-            }
+            echo "<input type='$input_type' id='$field' name='$field' value='" . htmlspecialchars($record[$field]) . "' class='form-control' required><br><br>";
+
+            echo "<label for='position_$field' class='form-label'>Change position of $field:</label>";
+            echo "<input type='number' id='position_$field' name='position_$field' class='form-control' min='1'><br><br>";
 
             echo "</div>";
         }
@@ -76,40 +65,50 @@ function generate_edit_form($table, $id) {
 
 if (isset($_POST['edit'])) {
     $columns = [];
-    $values = [];
+    $query_columns = "SHOW COLUMNS FROM $table";
+    $result_columns = mysqli_query($connection, $query_columns);
 
-    $query = "SHOW COLUMNS FROM $table";
-    $result = mysqli_query($connection, $query);
-
-    while ($column = mysqli_fetch_assoc($result)) {
-        $field = $column['Field'];
-
-        if ($field === 'id') {
-            continue;
-        }
-
-        if (isset($_POST[$field])) {
-            $columns[] = $field;
-            $values[] = "'" . mysqli_real_escape_string($connection, $_POST[$field]) . "'";
-        }
+    while ($column = mysqli_fetch_assoc($result_columns)) {
+        $columns[] = $column['Field'];
     }
 
     $set_values = [];
-    foreach ($columns as $index => $column) {
-        $set_values[] = "$column = " . $values[$index];
+    foreach ($columns as $column) {
+        if (isset($_POST[$column])) {
+            $set_values[] = "$column = '" . mysqli_real_escape_string($connection, $_POST[$column]) . "'";
+        }
     }
 
     $set_str = implode(", ", $set_values);
-
     $query = "UPDATE $table SET $set_str WHERE id = $id";
     $result = mysqli_query($connection, $query);
 
     if ($result) {
-        echo "<div class='alert alert-success mt-4'>Record updated successfully.</div>";
+        echo "Record updated successfully.";
     } else {
-        echo "<div class='alert alert-danger mt-4'>Error: " . mysqli_error($connection) . "</div>";
+        echo "Error: " . mysqli_error($connection);
+    }
+
+    foreach ($columns as $column) {
+        if (isset($_POST['position_' . $column])) {
+            $new_position = intval($_POST['position_' . $column]);
+
+            if ($new_position > 0 && $new_position <= count($columns)) {
+                $previous_column = $columns[$new_position - 1];
+                $type = null;
+                
+                $query_type = "SHOW COLUMNS FROM $table WHERE Field = '$column'";
+                $result_type = mysqli_query($connection, $query_type);
+                $column_info = mysqli_fetch_assoc($result_type);
+                $type = $column_info['Type'];
+
+                $query_pos = "ALTER TABLE $table MODIFY COLUMN `$column` $type AFTER `$previous_column`";
+                mysqli_query($connection, $query_pos);
+            }
+        }
     }
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -118,22 +117,18 @@ if (isset($_POST['edit'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Record - <?php echo ucfirst($table); ?></title>
-
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body class="container mt-5">
-
-<h1>Edit Record in <?php echo ucfirst($table); ?></h1>
-
-<?php generate_edit_form($table, $id); ?>
-
-<br>
-<a href="dashboard.php" class="btn btn-secondary">Back to Admin Panel</a>
-
-<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-
+<body>
+<div class="container">
+    <h1 class="mt-5">Edit Record in <?php echo ucfirst($table); ?></h1>
+    <?php generate_edit_form($table, $id); ?>
+    <br><br>
+    <a href="dashboard.php" class="btn btn-secondary">Back to Admin Panel</a>
+</div>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
 
