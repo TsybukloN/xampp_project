@@ -20,21 +20,26 @@ if ($_SESSION['role'] === 'user') {
 $selected_table = isset($_GET['table']) ? $_GET['table'] : $tables[0];
 $filter1 = isset($_GET['filter1']) ? $_GET['filter1'] : '';
 $filter2 = isset($_GET['filter2']) ? $_GET['filter2'] : '';
-$role_filter = isset($_GET['role']) ? $_GET['role'] : ''; // Фильтр по роли
+$role_filter = isset($_GET['role_filter']) ? $_GET['role_filter'] : ''; // Фильтр по роли пользователя
 $order = isset($_GET['order']) ? $_GET['order'] : 'id ASC';
 
 $query = "SELECT * FROM $selected_table";
+$conditions = [];
 
 if ($filter1) {
-    $query .= " WHERE (username LIKE '%$filter1%' OR email LIKE '%$filter1%')";
+    $conditions[] = "CONCAT_WS(' ', " . implode(", ", get_columns($selected_table)) . ") LIKE '%$filter1%'";
 }
 
 if ($filter2) {
-    $query .= ($filter1 ? " AND" : " WHERE") . " users.created_time = '$filter2'";
+    $conditions[] = "created_time LIKE '%$filter2%'";
 }
 
 if ($selected_table === 'Users' && $role_filter) {
-    $query .= ($filter1 || $filter2 ? " AND" : " WHERE") . " role = '$role_filter'";
+    $conditions[] = "role = '$role_filter'"; // Фильтруем по роли пользователя
+}
+
+if (count($conditions) > 0) {
+    $query .= " WHERE " . implode(" AND ", $conditions);
 }
 
 $query .= " ORDER BY $order";
@@ -50,7 +55,6 @@ function get_columns($table) {
     }
     return $columns;
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -75,21 +79,19 @@ function get_columns($table) {
     </div>
 
     <div class="form-group">
-        <label for="filter1">Filter 1 (Username/Email):</label>
+        <label for="filter1">Filter 1 (Search Text/Number/Date):</label>
         <input type="text" name="filter1" id="filter1" class="form-control" value="<?php echo $filter1; ?>">
     </div>
 
     <div class="form-group">
-        <label for="filter2">Filter 2 (Date/Time):</label>
+        <label for="filter2">Filter 2 (Search Date):</label>
         <input type="text" name="filter2" id="filter2" class="form-control" value="<?php echo $filter2; ?>" placeholder="YYYY-MM-DD HH:MM:SS">
     </div>
 
     <?php if ($selected_table === 'Users'): ?>
-        <!-- Чекбоксы для фильтрации по роли -->
-        <div class="form-group">
-            <label>Filter by Role:</label><br>
-            <input type="checkbox" name="role" value="admin" <?php echo $role_filter === 'admin' ? 'checked' : ''; ?>> Admin
-            <input type="checkbox" name="role" value="user" <?php echo $role_filter === 'user' ? 'checked' : ''; ?>> User
+        <div class="form-check">
+            <input type="checkbox" class="form-check-input" name="role_filter" value="admin" <?php echo $role_filter === 'admin' ? 'checked' : ''; ?>>
+            <label class="form-check-label" for="role_filter">Filter by Admin Role</label>
         </div>
     <?php endif; ?>
 
