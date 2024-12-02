@@ -88,24 +88,35 @@ if (isset($_POST['edit'])) {
         echo "Error: " . mysqli_error($connection);
     }
 
-    foreach ($columns as $column) {
+    $new_positions = [];
+    foreach ($columns as $index => $column) {
         if (isset($_POST['position_' . $column])) {
-            $new_position = intval($_POST['position_' . $column]);
-
-            if ($new_position > 0 && $new_position <= count($columns)) {
-                $previous_column = $columns[$new_position - 1];
-
-                $query_type = "SHOW COLUMNS FROM $table WHERE Field = '$column'";
-                $result_type = mysqli_query($connection, $query_type);
-                $column_info = mysqli_fetch_assoc($result_type);
-                $type = $column_info['Type'];
-
-                $query_pos = "ALTER TABLE $table MODIFY COLUMN `$column` $type AFTER `$previous_column`";
-                mysqli_query($connection, $query_pos);
-            }
+            $new_positions[$column] = intval($_POST['position_' . $column]) - 1; 
+        } else {
+            $new_positions[$column] = $index;
         }
     }
+
+    asort($new_positions);
+
+    $prev_column = null;
+    foreach ($new_positions as $column => $new_position) {
+        $query_type = "SHOW COLUMNS FROM $table WHERE Field = '$column'";
+        $result_type = mysqli_query($connection, $query_type);
+        $column_info = mysqli_fetch_assoc($result_type);
+        $type = $column_info['Type'];
+
+        if ($prev_column) {
+            $query_pos = "ALTER TABLE $table MODIFY COLUMN `$column` $type AFTER `$prev_column`";
+        } else {
+            $query_pos = "ALTER TABLE $table MODIFY COLUMN `$column` $type FIRST";
+        }
+
+        mysqli_query($connection, $query_pos);
+        $prev_column = $column;
+    }
 }
+
 
 ?>
 
