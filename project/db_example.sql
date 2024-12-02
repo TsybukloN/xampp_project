@@ -16,8 +16,7 @@ INSERT INTO Prices VALUES (5, 2, 2, 1000, 100000, '2018-01-01');
 INSERT INTO Prices VALUES (6, 2, 3, 1000, 100000, '2018-01-01');
 
 INSERT INTO portfolios VALUES (1, 1, 'My Portfolio');
-INSERT INTO portfolios VALUES (2, 1, 'My Portfolio 2');
-INSERT INTO portfolios VALUES (3, 2, 'My Portfolio 3');
+INSERT INTO portfolios VALUES (2, 2, 'My Portfolio');
 
 INSERT INTO transactions VALUES (1, 1, 1, 'BUY', 1, 10000, '2018-01-01');
 INSERT INTO transactions VALUES (2, 1, 2, 'SELL', 1, 1000, '2018-01-01');
